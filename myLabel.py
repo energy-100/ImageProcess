@@ -52,7 +52,7 @@ class MyLabel(QLabel):
             self.ex = event.x()
             self.ey = event.y()
             self.update()
-            self.MoveedSignal.emit(self.sx,self.sy,event.x(),event.y())
+        self.MoveedSignal.emit(self.sx,self.sy,event.x(),event.y())
     # 绘制事件
     def paintEvent(self, event):
         super().paintEvent(event)

@@ -65,8 +65,8 @@ def countline(x, y,data):
     for i in range(len(x)):
         sum = 0
         for j in range(len(x[0])):
-            sum = sum + data[x[i][j], y[i][j]]
-            print(data[x[i][j], y[i][j]])
+            sum = sum + data[y[i][j], x[i][j]]
+            print(data[y[i][j], x[i][j]])
         linelist.append(sum / len(x[0]))
     print()
     return linelist

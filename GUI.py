@@ -7,6 +7,7 @@ from countelems import countPosition
 import datetime
 import numpy as np
 from sonWindow import SecondWindow
+from PyQt5.QtGui import QIcon
 #解决不能读取中文路径的问题
 
 def cv_imread(file_path):
@@ -25,6 +26,8 @@ class main(QMainWindow):
     CloseSonWinwowSignal = QtCore.pyqtSignal(object)
     def __init__(self, parent=None):
         super(main, self).__init__(parent)
+        self.setWindowTitle('灰度值变化统计软件')
+        self.setWindowIcon(QIcon('xyjk.png'))
         # self.setWindowIcon(QIcon('xyjk.png'))
         # self.setFont(QFont("Microsoft YaHei", 12))
         self.statusBar().showMessage("请选择图片文件...")
@@ -54,7 +57,7 @@ class main(QMainWindow):
         self.grid.addWidget(self.lb, 0, 0, 1, 6)
 
         # 显示折线
-        self.figure1 = Mydemo(width=10, height=5, dpi=100)
+        self.figure1 = Mydemo(width=3, height=3, dpi=90)
         self.grid.addWidget(self.figure1, 1, 0, 1, 6)
 
 
@@ -139,6 +142,8 @@ class main(QMainWindow):
         # self.figure1.axes.mouse_init()
         self.figure1.axes.plot(list)
         self.figure1.axes.grid()
+        self.figure1.axes.set_ylabel("灰度值")
+        self.figure1.axes.set_xlabel("像素数")
         self.figure1.axes.set_title("["+str(sx)+","+str(sy)+"]->["+str(ex)+","+str(ey)+"] 像素数:"+str(len(list))+"宽度:"+str(self.datawide*2+1))
         # self.figure1.axes.set_title("文件名:"+self.filename+"["+str(sx)+","+str(sy)+"]->["+str(ex)+","+str(ey)+"] 总点数:"+str(len(list))+"积分宽度(单边):"+str(self.width))
 
@@ -211,11 +216,17 @@ class main(QMainWindow):
         QImg = QImage(self.imgshow.data, width, height, bytesPerLine, QImage.Format_RGB888)
         pixmap = QPixmap.fromImage(QImg)
         self.lb.setFixedSize(width, height)
-        self.figure1.setFixedSize(width,height)
+        self.figure1.setFixedSize(width,width)
 
         # self.lb.setMaximumSize(height,width)
         self.lb.setPixmap(pixmap)
         self.lb.setCursor(Qt.CrossCursor)
+        print("********1",self.widget.minimumSize())
+        print("********1",self.minimumSize())
+        print("********1",self.grid.minimumSize())
+        self.setFixedSize(self.minimumSize())
+        # print()self.widget.sizeHint()
+        # self.setFixedSize(self.widget.sizeHint())
         # self.figure2.setFixedSize(width,height)
         # if(self.threeDcb.isChecked()==True):
             # self.load3Dimage(self.img)
@@ -268,7 +279,7 @@ class main(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     ui = main()
-    sonwin=SecondWindow()
-    ui.OpenSonWinwowSignal.connect(sonwin.handle_click)
+    # sonwin=SecondWindow()
+    # ui.OpenSonWinwowSignal.connect(sonwin.handle_click)
     ui.show()
     sys.exit(app.exec_())
