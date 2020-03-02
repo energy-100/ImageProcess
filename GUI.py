@@ -2,7 +2,7 @@
 from datetime import datetime
 from myLabel import *
 from imageWindows import *
-from countelems import countPosition
+from countelems import countPosition,countPositionV
 # from imageMarge import joinf
 import datetime
 import numpy as np
@@ -24,17 +24,19 @@ def cv_imread(file_path):
 class main(QMainWindow):
     OpenSonWinwowSignal = QtCore.pyqtSignal(object)
     CloseSonWinwowSignal = QtCore.pyqtSignal(object)
+    ModeSignal = QtCore.pyqtSignal(int)
     def __init__(self, parent=None):
         super(main, self).__init__(parent)
-        self.setWindowTitle('灰度值变化统计软件')
+        self.setWindowTitle('图像灰度值变化统计软件')
         self.setWindowIcon(QIcon('xyjk.png'))
         # self.setWindowIcon(QIcon('xyjk.png'))
         # self.setFont(QFont("Microsoft YaHei", 12))
-        self.statusBar().showMessage("请选择图片文件...")
+        self.statusBar().showMessage("请选择或拖拽图片文件...")
         self.setAcceptDrops(True)
         self.drawimage=""
         self.img=""
         self.datawide=5
+        self.linelen=50
         self.sx=-1
         self.sy=-1
         self.ex=-1
@@ -76,19 +78,34 @@ class main(QMainWindow):
 
 
         #数据宽度滑块
-        self.splider = QSlider(Qt.Horizontal)
-        self.splider.setMinimum(0)  # 最小值
-        self.splider.setMaximum(10)  # 最大值
-        self.splider.setSingleStep(1)  # 步长
-        self.splider.setTickPosition(QSlider.TicksBelow)  # 设置刻度位置，在下方
-        self.splider.setValue(5)
-        self.splider.sliderMoved.connect(self.sliderMoved)
-        self.grid.addWidget(self.splider, 3, 3, 1, 3)
+        self.slider = QSlider(Qt.Horizontal)
+        self.slider.setMinimum(0)  # 最小值
+        self.slider.setMaximum(10)  # 最大值
+        self.slider.setSingleStep(1)  # 步长
+        self.slider.setTickPosition(QSlider.TicksBelow)  # 设置刻度位置，在下方
+        self.slider.setValue(5)
+        self.slider.sliderMoved.connect(self.sliderMoved)
+        self.grid.addWidget(self.slider, 3, 3, 1, 3)
 
-        #刻度标签
-        self.spliderlabel=QLabel("积分宽度:"+str((self.splider.value())*2+1))
-        self.spliderlabel.setAlignment(Qt.AlignVCenter|Qt.AlignHCenter)
-        self.grid.addWidget(self.spliderlabel, 2, 3, 1, 3)
+        #数据宽度刻度标签
+        self.sliderlabel=QLabel("积分宽度:"+str((self.slider.value())*2+1))
+        self.sliderlabel.setAlignment(Qt.AlignVCenter|Qt.AlignHCenter)
+        self.grid.addWidget(self.sliderlabel, 2, 3, 1, 3)
+        
+        #数据长度滑块
+        self.sliderlen = QSlider(Qt.Horizontal)
+        self.sliderlen.setMinimum(1)  # 最小值
+        self.sliderlen.setMaximum(100)  # 最大值
+        self.sliderlen.setSingleStep(10)  # 步长
+        self.sliderlen.setTickPosition(QSlider.TicksBelow)  # 设置刻度位置，在下方
+        self.sliderlen.setValue(50)
+        self.sliderlen.sliderMoved.connect(self.sliderlenMoved)
+        self.grid.addWidget(self.sliderlen, 5, 3, 1, 3)
+
+        #数据长度刻度标签
+        self.sliderlenlabel=QLabel("像素长度:"+str((self.sliderlen.value())*2))
+        self.sliderlenlabel.setAlignment(Qt.AlignVCenter|Qt.AlignHCenter)
+        self.grid.addWidget(self.sliderlenlabel, 4, 3, 1, 3)
 
         # 保存画图
         self.saverawimage=QPushButton("保存绘制图")
@@ -108,7 +125,20 @@ class main(QMainWindow):
         #显示3D图复选框
         self.threeDcb = QCheckBox('显示3D图', self)
         # self.threeDcb.stateChanged.connect(self.threeDcbchannged)
-        self.grid.addWidget(self.threeDcb, 4, 0, 1, 1)
+        self.grid.addWidget(self.threeDcb, 4, 2, 1, 1)
+
+        #模式单选框
+        self.mode1RadioButton = QRadioButton("直线计算")
+        self.mode2RadioButton = QRadioButton("垂直计算")
+        self.grid.addWidget(self.mode1RadioButton,4,0,1,1)
+        self.grid.addWidget(self.mode2RadioButton,4,1,1,1)
+        self.modeButtonGroup = QButtonGroup()
+        self.modeButtonGroup.addButton(self.mode1RadioButton)
+        self.modeButtonGroup.addButton(self.mode2RadioButton)
+        self.modeButtonGroup.setId(self.mode1RadioButton, 1)  # 设定ID
+        self.modeButtonGroup.setId(self.mode2RadioButton, 2)  # 设定ID
+        self.mode2RadioButton.setChecked(True)
+        self.modeButtonGroup.buttonClicked[int].connect(self.lb.modechanged)
 
 
         # 布局配置
@@ -117,6 +147,7 @@ class main(QMainWindow):
         self.widget=QWidget()
         self.widget.setLayout(self.grid)
         self.setCentralWidget(self.widget)
+        self.setFixedSize(self.minimumSize())
         print(self.widget.sizeHint())
         print(self.widget.sizeHint())
 
@@ -134,9 +165,11 @@ class main(QMainWindow):
         self.ex = ex
         self.ey = ey
         self.drawimage=image
-        self.statusBar().showMessage("[" + str(sx) + "," + str(sy) + "]->["+str(ex)+","+str(ey)+"]")
-        list=countPosition(sx,sy,ex,ey,self.img)
-
+        # self.statusBar().showMessage("[" + str(sx) + "," + str(sy) + "]->["+str(ex)+","+str(ey)+"]")
+        if(self.modeButtonGroup.checkedId()==1):
+            list = countPosition(sx,sy,ex,ey,self.img,self.slider.value())
+        elif(self.modeButtonGroup.checkedId()==2):
+            list = countPositionV(sx, sy, ex, ey, self.img, self.slider.value(), self.sliderlen.value())
         self.figure1.fig.canvas.draw_idle()
         self.figure1.axes.clear()
         # self.figure1.axes.mouse_init()
@@ -151,11 +184,20 @@ class main(QMainWindow):
         self.statusBar().showMessage("[" + str(sx) + "," + str(sy) + "]->[" + str(ex) + "," + str(ey) + "]")
         pass
 
-    # 滑块滑动函数
+    # 宽度滑块滑动函数
     def sliderMoved(self,index):
-        self.spliderlabel.setText("积分宽度:"+str(index*2+1))
+        self.sliderlabel.setText("积分宽度:"+str(index*2+1))
         self.datawide=int(index)
         self.lb.linewide=int(index)
+
+    # 长度滑块滑动函数
+    def sliderlenMoved(self,index):
+        self.sliderlenlabel.setText("像素长度:"+str(index*2))
+        print("像素长度:",index,str(index*2))
+        self.linelen=int(index)
+        self.lb.linelen=int(index)
+
+
 
     # 保存原图片函数
     def saverawimageclicked(self):
@@ -164,14 +206,34 @@ class main(QMainWindow):
         QImg = QImage(self.imgshow.data, width, height, bytesPerLine, QImage.Format_RGB888)
         self.temppixmap = QPixmap.fromImage(QImg)
         painter = QPainter(self.temppixmap)
-        painter.setPen(QPen(Qt.red, self.datawide * 2, Qt.DotLine))
-        painter.setFont(QtGui.QFont("Roman times", 15))
-        # print(self.sx, self.sy, self.ex, self.ey)
-        painter.drawLine(self.sx, self.sy, self.ex, self.ey)
-        painter.drawText(self.sx, self.sy, "[" + str(self.sx) + "," + str(self.sy) + "]")
-        painter.drawText(self.ex, self.ey, "[" + str(self.ex) + "," + str(self.ey) + "]")
-        self.temppixmap.save(self.filedir + "/" + self.filename + "(数据选择)" + ".png")
-
+        if(self.modeButtonGroup.checkedId()==1):
+            painter.setPen(QPen(Qt.red, self.datawide * 2, Qt.DotLine))
+            painter.setFont(QtGui.QFont("Roman times", 15))
+            # print(self.sx, self.sy, self.ex, self.ey)
+            painter.drawLine(self.sx, self.sy, self.ex, self.ey)
+            painter.drawText(self.sx, self.sy, "[" + str(self.sx) + "," + str(self.sy) + "]")
+            painter.drawText(self.ex, self.ey, "[" + str(self.ex) + "," + str(self.ey) + "]")
+            self.temppixmap.save(self.filedir + "/" + self.filename + "(直线数据)" + ".png")
+        elif(self.modeButtonGroup.checkedId()==2):
+            painter.setPen(QPen(Qt.red, 3, Qt.DotLine))
+            painter.setFont(QtGui.QFont("Roman times", 15))
+            painter.drawLine(self.sx, self.sy, self.ex, self.ey)
+            # painter.drawText(self.sx, self.sy, "["+str(self.sx)+","+str(self.sy)+"]")
+            # painter.drawText(self.ex, self.ey, "["+str(self.ex)+","+str(self.ey)+"]")
+            painter.setPen(QPen(Qt.blue, self.slider.value() * 2 + 1, Qt.DotLine))
+            Vx1 = round(self.sx + (self.ey - self.sy) * self.sliderlen.value() / (
+                        (self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+            Vy1 = round(self.sy - (self.ex - self.sx) * self.sliderlen.value() / (
+                        (self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+            Vx2 = round(self.sx - (self.ey - self.sy) * self.sliderlen.value() / (
+                        (self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+            Vy2 = round(self.sy + (self.ex - self.sx) * self.sliderlen.value() / (
+                        (self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+            painter.drawLine(self.sx, self.sy, Vx1, Vy1)
+            painter.drawLine(self.sx, self.sy, Vx2, Vy2)
+            painter.drawText(Vx1, Vy1, "[" + str(Vx1) + "," + str(Vy1) + "]")
+            painter.drawText(Vx2, Vy2, "[" + str(Vx2) + "," + str(Vy2) + "]")
+            self.temppixmap.save(self.filedir + "/" + self.filename + "(垂直数据)" + ".png")
     def savelineimageclicked(self):
         self.figure1.axes.get_figure().savefig(self.filedir + "/" + self.filename + "(折线图)" + ".png")
 
@@ -201,6 +263,9 @@ class main(QMainWindow):
         print(path)
         self.filepathline.setText(path)
         self.path = path
+        self.lb.linewide = self.slider.value()
+        self.lb.linelen = self.sliderlen.value()
+        self.lb.mode=self.modeButtonGroup.checkedId()
         filedir, allfilename = os.path.split(path)
         self.filename, self.fileextension = os.path.splitext(allfilename)
         self.filedir = filedir
@@ -221,9 +286,9 @@ class main(QMainWindow):
         # self.lb.setMaximumSize(height,width)
         self.lb.setPixmap(pixmap)
         self.lb.setCursor(Qt.CrossCursor)
-        print("********1",self.widget.minimumSize())
-        print("********1",self.minimumSize())
-        print("********1",self.grid.minimumSize())
+        # print("********1",self.widget.minimumSize())
+        # print("********1",self.minimumSize())
+        # print("********1",self.grid.minimumSize())
         self.setFixedSize(self.minimumSize())
         # print()self.widget.sizeHint()
         # self.setFixedSize(self.widget.sizeHint())
@@ -275,6 +340,7 @@ class main(QMainWindow):
         endtime = datetime.datetime.now()
         print('加载3D图像1 The time cost: ', str(endtime0 - starttime))
         print('加载3D图像2 The time cost: ', str(endtime - starttime))
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

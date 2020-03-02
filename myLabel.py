@@ -14,8 +14,16 @@ class MyLabel(QLabel):
     sy = 0
     ex = 0
     ey = 0
+    Vx1=0
+    Vx2=0
+    Vy1=0
+    Vy2=0
     count = 0
-    linewide=5
+    # linewide=5
+    # linelen=50
+    linewide=0
+    linelen=0
+    mode=1
     flag = False
     PressedSignal = QtCore.pyqtSignal(int,int)
     ReleasedSignal = QtCore.pyqtSignal(int,int,int,int,object)
@@ -52,7 +60,10 @@ class MyLabel(QLabel):
             self.ex = event.x()
             self.ey = event.y()
             self.update()
-        self.MoveedSignal.emit(self.sx,self.sy,event.x(),event.y())
+        if(self.mode==1):
+            self.MoveedSignal.emit(self.sx,self.sy,self.ex,self.ey)
+        elif(self.mode==2):
+            self.MoveedSignal.emit(self.Vx1,self.Vy1,self.Vx2,self.Vy2)
     # 绘制事件
     def paintEvent(self, event):
         super().paintEvent(event)
@@ -60,12 +71,32 @@ class MyLabel(QLabel):
             # rect = QRect(self.sx, self.sy, abs(self.ex - self.sx), abs(self.ey - self.sy))
 
             painter = QPainter(self)
-            painter.setPen(QPen(Qt.red, self.linewide*2, Qt.DotLine))
-            painter.setFont(QtGui.QFont("Roman times",15))
-            # print(self.sx, self.sy, self.ex, self.ey)
-            painter.drawLine(self.sx, self.sy, self.ex, self.ey)
-            painter.drawText(self.sx, self.sy, "["+str(self.sx)+","+str(self.sy)+"]")
-            painter.drawText(self.ex, self.ey, "["+str(self.ex)+","+str(self.ey)+"]")
+            if(self.mode==1):
+                painter.setPen(QPen(Qt.red, self.linewide*2+1, Qt.DotLine))
+                painter.setFont(QtGui.QFont("Roman times", 15))
+                painter.drawLine(self.sx, self.sy, self.ex, self.ey)
+                painter.drawText(self.sx, self.sy, "[" + str(self.sx) + "," + str(self.sy) + "]")
+                painter.drawText(self.ex, self.ey, "[" + str(self.ex) + "," + str(self.ey) + "]")
+            elif(self.mode==2):
+                painter.setPen(QPen(Qt.red, 3, Qt.DotLine))
+                painter.setFont(QtGui.QFont("Roman times",15))
+                painter.drawLine(self.sx, self.sy, self.ex, self.ey)
+                # painter.drawText(self.sx, self.sy, "["+str(self.sx)+","+str(self.sy)+"]")
+                # painter.drawText(self.ex, self.ey, "["+str(self.ex)+","+str(self.ey)+"]")
+                painter.setPen(QPen(Qt.blue, self.linewide*2+1, Qt.DotLine))
+                Vx1=round(self.sx+(self.ey-self.sy)*self.linelen/((self.ey-self.sy)**2+(self.sx-self.ex)**2)**0.5)
+                Vy1=round(self.sy-(self.ex-self.sx)*self.linelen/((self.ey-self.sy)**2+(self.sx-self.ex)**2)**0.5)
+                Vx2 = round(self.sx - (self.ey - self.sy) * self.linelen / ((self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+                Vy2 = round(self.sy + (self.ex - self.sx) * self.linelen / ((self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+
+                painter.drawLine(self.sx, self.sy, Vx1,Vy1)
+                painter.drawLine(self.sx, self.sy, Vx2,Vy2)
+                painter.drawText(Vx1, Vy1, "[" + str(Vx1) + "," + str(Vy1) + "]")
+                painter.drawText(Vx2, Vy2, "[" + str(Vx2) + "," + str(Vy2) + "]")
+                self.Vx1=Vx1
+                self.Vx2=Vx2
+                self.Vy1=Vy1
+                self.Vy2=Vy2
             # self.pixmap2.save("C:/Users/ENERGY/Desktop/abc.png")
     def dragEnterEvent(self, evn):
         evn.accept()
@@ -82,3 +113,7 @@ class MyLabel(QLabel):
         _ ,filename = os.path.split(evn.mimeData().text().split("///")[1])
         filename , _=os.path.splitext(filename)
         self.MessageSignal.emit("正在拖入'"+filename+"'文件...")
+
+    def modechanged(self,id):
+        self.mode=id
+        # print(id)
