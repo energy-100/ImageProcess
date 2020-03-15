@@ -4,4 +4,6 @@
 # img=img.convert('L')
 # img_array=img.load()
 # print(img_array[200,200])
-print(3/5)
+a=range(3,-1,-1)
+for i in a:
+    print(i)

@@ -3,11 +3,12 @@ from datetime import datetime
 from myLabel import *
 from imageWindows import *
 from countelems import countPosition,countPositionV
-# from imageMarge import joinf
+from imageMarge import join
 import datetime
 import numpy as np
 from sonWindow import SecondWindow
 from PyQt5.QtGui import QIcon
+from autoWayCount import countPosition2
 #解决不能读取中文路径的问题
 
 def cv_imread(file_path):
@@ -65,7 +66,7 @@ class main(QMainWindow):
 
         # 文件路径显示框
         self.filepathline=QLineEdit()
-        self.filepathline.setPlaceholderText('可拖拽数据文件至此')
+        self.filepathline.setPlaceholderText('请点击右侧按钮选择图片→')
         self.filepathline.setReadOnly(True)
         self.grid.addWidget(self.filepathline,2,0,1,2)
 
@@ -117,28 +118,37 @@ class main(QMainWindow):
         self.savelineimage.clicked.connect(self.savelineimageclicked)
         self.grid.addWidget(self.savelineimage, 3, 1, 1, 1)
 
-        # 保存整合图
-        self.savemargeimage=QPushButton("保存整合图")
-        self.savemargeimage.clicked.connect(self.savemargeimageclicked)
-        self.grid.addWidget(self.savemargeimage, 3, 2, 1, 1)
+        # 保存横向整合图
+        self.savemargeimage=QPushButton("保存横向整合图")
+        self.savemargeimage.clicked.connect(self.savemargeimageclickedH)
+        self.grid.addWidget(self.savemargeimage, 4, 0, 1, 1)
+
+        # 保存纵向整合图
+        self.savemargeimage=QPushButton("保存纵向整合图")
+        self.savemargeimage.clicked.connect(self.savemargeimageclickedV)
+        self.grid.addWidget(self.savemargeimage, 4, 1, 1, 1)
 
         #显示3D图复选框
-        self.threeDcb = QCheckBox('显示3D图', self)
+        self.threeDcb = QCheckBox('显示3D图')
         # self.threeDcb.stateChanged.connect(self.threeDcbchannged)
-        self.grid.addWidget(self.threeDcb, 4, 2, 1, 1)
+        # self.grid.addWidget(self.threeDcb, 4, 2, 1, 1)
 
         #模式单选框
         self.mode1RadioButton = QRadioButton("直线计算")
         self.mode2RadioButton = QRadioButton("垂直计算")
-        self.grid.addWidget(self.mode1RadioButton,4,0,1,1)
-        self.grid.addWidget(self.mode2RadioButton,4,1,1,1)
+        self.mode3RadioButton = QRadioButton("路径自动识别")
+        self.grid.addWidget(self.mode1RadioButton,5,0,1,1)
+        self.grid.addWidget(self.mode2RadioButton,5,1,1,1)
+        self.grid.addWidget(self.mode3RadioButton,5,2,1,1)
         self.modeButtonGroup = QButtonGroup()
         self.modeButtonGroup.addButton(self.mode1RadioButton)
         self.modeButtonGroup.addButton(self.mode2RadioButton)
+        self.modeButtonGroup.addButton(self.mode3RadioButton)
         self.modeButtonGroup.setId(self.mode1RadioButton, 1)  # 设定ID
         self.modeButtonGroup.setId(self.mode2RadioButton, 2)  # 设定ID
+        self.modeButtonGroup.setId(self.mode3RadioButton, 3)  # 设定ID
         self.mode2RadioButton.setChecked(True)
-        self.modeButtonGroup.buttonClicked[int].connect(self.lb.modechanged)
+        self.modeButtonGroup.buttonClicked[int].connect(self.modechanged)
 
 
         # 布局配置
@@ -150,7 +160,7 @@ class main(QMainWindow):
         self.setFixedSize(self.minimumSize())
         print(self.widget.sizeHint())
         print(self.widget.sizeHint())
-
+        self.move(20,10)
 
     def readfile(self):
         path,_ = QFileDialog.getOpenFileName(self, '请选择图片文件','','Image Files (*.jpg *.png *.jpeg)')
@@ -159,17 +169,21 @@ class main(QMainWindow):
     def press(self,x,y):
         self.statusBar().showMessage("["+str(x)+","+str(y)+"]")
 
-    def release(self,sx,sy,ex,ey,image):
+    def release(self,sx,sy,ex,ey):
+        if(self.img==""):
+            return
         self.sx = sx
         self.sy = sy
         self.ex = ex
         self.ey = ey
-        self.drawimage=image
+        # self.drawimage=image
         # self.statusBar().showMessage("[" + str(sx) + "," + str(sy) + "]->["+str(ex)+","+str(ey)+"]")
         if(self.modeButtonGroup.checkedId()==1):
             list = countPosition(sx,sy,ex,ey,self.img,self.slider.value())
         elif(self.modeButtonGroup.checkedId()==2):
             list = countPositionV(sx, sy, ex, ey, self.img, self.slider.value(), self.sliderlen.value())
+        elif(self.modeButtonGroup.checkedId()==3):
+            pass
         self.figure1.fig.canvas.draw_idle()
         self.figure1.axes.clear()
         # self.figure1.axes.mouse_init()
@@ -183,6 +197,17 @@ class main(QMainWindow):
     def moved(self,sx,sy,ex,ey):
         self.statusBar().showMessage("[" + str(sx) + "," + str(sy) + "]->[" + str(ex) + "," + str(ey) + "]")
         pass
+
+
+
+    def modechanged(self,id):
+        self.lb.modechanged(id)
+        if(id==2):
+            self.sliderlenlabel.setText("积分长度:"+str(self.sliderlen.value()))
+            self.sliderlen.setEnabled(True)
+        else:
+            self.sliderlenlabel.setText("积分长度无效")
+            self.sliderlen.setEnabled(False)
 
     # 宽度滑块滑动函数
     def sliderMoved(self,index):
@@ -237,22 +262,52 @@ class main(QMainWindow):
     def savelineimageclicked(self):
         self.figure1.axes.get_figure().savefig(self.filedir + "/" + self.filename + "(折线图)" + ".png")
 
-    def savemargeimageclicked(self):
-        pass
-        # height, width, bytesPerComponent = self.colorimg.shape
-        # bytesPerLine = 3 * width
-        # QImg = QImage(self.imgshow.data, width, height, bytesPerLine, QImage.Format_RGB888)
-        # self.temppixmap = QPixmap.fromImage(QImg)
-        # painter = QPainter(self.temppixmap)
-        # painter.setPen(QPen(Qt.red, self.datawide * 2, Qt.DotLine))
-        # painter.setFont(QtGui.QFont("Roman times", 15))
-        # # print(self.sx, self.sy, self.ex, self.ey)
-        # painter.drawLine(self.sx, self.sy, self.ex, self.ey)
-        # painter.drawText(self.sx, self.sy, "[" + str(self.sx) + "," + str(self.sy) + "]")
-        # painter.drawText(self.ex, self.ey, "[" + str(self.ex) + "," + str(self.ey) + "]")
-        # print(type(self.figure1.axes.get_figure()))
-        # join(self.temppixmap.toImage(),QImage(self.figure1.axes),self.filedir + "/" + self.filename + "(拼接图)" + ".png")
+    def savemargeimageclickedH(self):
+        self.margeimage("h")
 
+    def savemargeimageclickedV(self):
+        self.margeimage("v")
+
+    def margeimage(self,direction):
+        height, width, bytesPerComponent = self.colorimg.shape
+        bytesPerLine = 3 * width
+        QImg = QImage(self.imgshow.data, width, height, bytesPerLine, QImage.Format_RGB888)
+        self.temppixmap = QPixmap.fromImage(QImg)
+        painter = QPainter(self.temppixmap)
+        if (self.modeButtonGroup.checkedId() == 1):
+            painter.setPen(QPen(Qt.red, self.datawide * 2, Qt.DotLine))
+            painter.setFont(QtGui.QFont("Roman times", 15))
+            # print(self.sx, self.sy, self.ex, self.ey)
+            painter.drawLine(self.sx, self.sy, self.ex, self.ey)
+            painter.drawText(self.sx, self.sy, "[" + str(self.sx) + "," + str(self.sy) + "]")
+            painter.drawText(self.ex, self.ey, "[" + str(self.ex) + "," + str(self.ey) + "]")
+        elif (self.modeButtonGroup.checkedId() == 2):
+            painter.setPen(QPen(Qt.red, 3, Qt.DotLine))
+            painter.setFont(QtGui.QFont("Roman times", 15))
+            painter.drawLine(self.sx, self.sy, self.ex, self.ey)
+            # painter.drawText(self.sx, self.sy, "["+str(self.sx)+","+str(self.sy)+"]")
+            # painter.drawText(self.ex, self.ey, "["+str(self.ex)+","+str(self.ey)+"]")
+            painter.setPen(QPen(Qt.blue, self.slider.value() * 2 + 1, Qt.DotLine))
+            Vx1 = round(self.sx + (self.ey - self.sy) * self.sliderlen.value() / (
+                    (self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+            Vy1 = round(self.sy - (self.ex - self.sx) * self.sliderlen.value() / (
+                    (self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+            Vx2 = round(self.sx - (self.ey - self.sy) * self.sliderlen.value() / (
+                    (self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+            Vy2 = round(self.sy + (self.ex - self.sx) * self.sliderlen.value() / (
+                    (self.ey - self.sy) ** 2 + (self.sx - self.ex) ** 2) ** 0.5)
+            painter.drawLine(self.sx, self.sy, Vx1, Vy1)
+            painter.drawLine(self.sx, self.sy, Vx2, Vy2)
+            painter.drawText(Vx1, Vy1, "[" + str(Vx1) + "," + str(Vy1) + "]")
+            painter.drawText(Vx2, Vy2, "[" + str(Vx2) + "," + str(Vy2) + "]")
+        buf = self.figure1.fig.canvas.print_to_buffer()
+        res_x, res_y = buf[1]
+        img = QImage(buf[0], res_x, res_y, QImage.Format_RGBA8888)
+        if direction=="h":
+            margefilename = self.filedir + "/" + self.filename + "(横向整合图)" + ".png"
+        elif direction=="v":
+            margefilename =self.filedir + "/" + self.filename + "(纵向整合图)" + ".png"
+        join(self.temppixmap.toImage(), img, margefilename, flag=direction)
     def showmessage(self,str):
         self.statusBar().showMessage(str)
 
@@ -269,12 +324,12 @@ class main(QMainWindow):
         filedir, allfilename = os.path.split(path)
         self.filename, self.fileextension = os.path.splitext(allfilename)
         self.filedir = filedir
-        self.statusBar().showMessage("已加载图片：" + self.filename)
         # cv2.imdecode(np.fromfile(path, dtype=np.uint8), -1)
         self.colorimg = cv2.imdecode(np.fromfile(path, dtype=np.uint8), cv2.IMREAD_COLOR)
         # self.colorimg=cv_imread(path) #彩色
         self.imgshow = self.colorimg.copy()  # 彩色
         self.img = cv2.cvtColor(self.colorimg, cv2.COLOR_BGR2GRAY)  # 转化为灰度图
+        self.lb.img=self.img
         height, width, bytesPerComponent = self.colorimg.shape
         # bytesPerLine =  width
         bytesPerLine = 3 * width
@@ -295,7 +350,7 @@ class main(QMainWindow):
         # self.figure2.setFixedSize(width,height)
         # if(self.threeDcb.isChecked()==True):
             # self.load3Dimage(self.img)
-
+        self.statusBar().showMessage("已加载图片：" + self.filename)
 
 
     def threeDcbchannged(self,state):
@@ -340,6 +395,8 @@ class main(QMainWindow):
         endtime = datetime.datetime.now()
         print('加载3D图像1 The time cost: ', str(endtime0 - starttime))
         print('加载3D图像2 The time cost: ', str(endtime - starttime))
+
+
 
 
 if __name__ == '__main__':
