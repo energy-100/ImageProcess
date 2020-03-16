@@ -196,13 +196,21 @@ def autoPositionV(x1, y1, x2, y2,data,wide,len):
 
 # 将邻域坐标合并
 def countline(x, y,data):
+    xmax=len(data[0])
+    ymax=len(data)
     linelist = []
     for i in range(len(x)):
         sum = 0
-        for j in range(len(x[0])):
-            sum = sum + data[y[i][j], x[i][j]]
+        for j in range(len(x[i])):
+            #防止超出图片边界
+            datanum=0
+            if(y[i][j]<ymax and x[i][j]<ymax):
+                sum = sum + data[y[i][j], x[i][j]]
+                datanum+=1
             # print(data[y[i][j], x[i][j]])
-        linelist.append(sum / len(x[0]))
+        #防止整个数组为空时，分子分母均为0，出现分母=0异常
+        if(sum!=0):
+            linelist.append(sum / datanum)
     # print()
     return linelist
     # plt.plot(linelist)
