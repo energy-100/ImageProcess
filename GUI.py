@@ -2,7 +2,7 @@
 from datetime import datetime
 from myLabel import *
 from imageWindows import *
-from countelems import countPosition,countPositionV
+from countelems import countPosition,countPositionV,autoPosition
 from imageMarge import join
 import datetime
 import numpy as np
@@ -162,8 +162,8 @@ class main(QMainWindow):
         # self.threeDcb.stateChanged.connect(self.threeDcbchannged)
         # self.grid.addWidget(self.threeDcb, 4, 2, 1, 1)
 
-        #模式单选框
-        self.showpicturebox = QGroupBox('原图显示模式')
+        # 图像显示模式单选框
+        self.showpicturebox = QGroupBox('图像显示模式')
         self.showpictureboxGrid = QGridLayout()
         self.showpicture1RadioButton = QRadioButton("原图")
         self.showpicture2RadioButton = QRadioButton("灰度图")
@@ -248,11 +248,12 @@ class main(QMainWindow):
             list = countPosition(self.sxV, self.syV, self.exV, self.eyV, self.img, self.slider.value())
             # list = countPositionV(sx, sy, ex, ey, self.img, self.slider.value(), self.sliderlen.value())
         elif(self.modeButtonGroup.checkedId()==3):
+            rx, ry = countPosition2(self.sx, self.sy, self.ex, self.ey, self.img)
+            list=autoPosition(rx, ry,self.img,self.slider.value())
 
-            pass
 
         # 绘制折线图
-        if(self.modeButtonGroup.checkedId()!=3):
+        if(self.modeButtonGroup.checkedId()!=4):
             self.figure1.fig.canvas.draw_idle()
             self.figure1.axes.clear()
             # self.figure1.axes.mouse_init()
@@ -283,7 +284,7 @@ class main(QMainWindow):
             self.sliderlenlabel.setText("积分长度:"+str(self.sliderlen.value()))
             self.sliderlen.setEnabled(True)
         else:
-            self.sliderlenlabel.setText("积分长度无效")
+            self.sliderlenlabel.setText("积分长度:"+str(self.sliderlen.value())+"(无效)")
             self.sliderlen.setEnabled(False)
 
     # 宽度滑块滑动函数
@@ -631,7 +632,7 @@ class main(QMainWindow):
             self.lb.setPixmap(pixmap)
             self.lb.setCursor(Qt.CrossCursor)
         elif id==3:
-
+            self.sliderenhanceimagelabel.setText("增强Gamma值:" + str(self.sliderenhanceimage.value()))
             self.statusBar().showMessage("增在增强图片..." + self.filename)
             #增强图
             print(type(self.img))
